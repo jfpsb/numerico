@@ -1,9 +1,11 @@
 package main;
 
+import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.List;
 
 import org.apache.commons.math3.linear.Array2DRowRealMatrix;
+import org.apache.commons.math3.linear.CholeskyDecomposition;
 import org.apache.commons.math3.linear.LUDecomposition;
 import org.apache.commons.math3.linear.RealMatrix;
 
@@ -12,6 +14,30 @@ public class Metodos {
 	private static List<Ponto> pontos = new ArrayList<Ponto>();
 
 	public static void main(String[] args) {
+		
+		RealMatrix c = new Array2DRowRealMatrix(4, 4);
+		
+		c.setEntry(0, 0, 16);
+		c.setEntry(0, 1, -4);
+		c.setEntry(0, 2, 12);
+		c.setEntry(0, 3, -4);
+		
+		c.setEntry(1, 0, -4);
+		c.setEntry(1, 1, 2);
+		c.setEntry(1, 2, -1);
+		c.setEntry(1, 3, 1);
+		
+		c.setEntry(2, 0, 12);
+		c.setEntry(2, 1, -1);
+		c.setEntry(2, 2, 14);
+		c.setEntry(2, 3, -2);
+		
+		c.setEntry(3, 0, -4);
+		c.setEntry(3, 1, 1);
+		c.setEntry(3, 2, -2);
+		c.setEntry(3, 3, 83);
+		
+		Choleski.fatorar(c);
 		
 		FatoracaoLU.chamarResolucao();
 		
@@ -31,25 +57,128 @@ public class Metodos {
 		InterporlacaoNewton.interpolar(17);
 	}
 	
+	private static class Choleski {		
+		public static void fatorar(RealMatrix coeficientes) {
+			double soma;
+			double soma2;
+			RealMatrix G = new Array2DRowRealMatrix(coeficientes.getRowDimension(), coeficientes.getColumnDimension());
+			
+			for(int k = 0; k < coeficientes.getRowDimension(); k++) {
+				soma = 0;
+				//Elementos da diagonal
+				for(int j = 0; j <= k; j++) {
+					soma += Math.pow(G.getEntry(k, j), 2);
+				}
+				
+				G.setEntry(k, k, Math.sqrt(coeficientes.getEntry(k, k) - soma));
+				
+				// Outros elementos
+				for(int i = k + 1; i < coeficientes.getRowDimension(); i++) {
+					soma2 = 0;
+					
+					for(int j = 0; j <= k; j++) {
+						soma2 += G.getEntry(i, j) * G.getEntry(k, j);
+					}
+					
+					G.setEntry(i, k, (coeficientes.getEntry(i, k) - soma2)/G.getEntry(k, k));
+				}
+			}
+			
+			System.out.println("MATRIZ G:");
+			for(int i = 0; i < G.getRowDimension(); i++) {
+				for (int j = 0; j < G.getColumnDimension(); j++) {
+					System.out.printf("%.6f  ", G.getEntry(i, j));
+				}
+				System.out.println();
+			}
+			
+			System.out.println("\nMATRIZ G^t:");
+			RealMatrix Gt = G.transpose();			
+			for(int i = 0; i < Gt.getRowDimension(); i++) {
+				for (int j = 0; j < Gt.getColumnDimension(); j++) {
+					System.out.printf("%.6f  ", Gt.getEntry(i, j));
+				}
+				System.out.println();
+			}
+		}
+	}
+	
 	private static class FatoracaoLU {
 		public static void chamarResolucao() {
+			System.out.println(">>> PÁGINA 414, QUESTÃO 5");
+			System.out.println("LETRA A");
+			System.out.println("SISTEMA:");
 			RealMatrix letraAcoeficientes = new Array2DRowRealMatrix(3, 3);
-			letraAcoeficientes.addToEntry(0, 0, 3);
-			letraAcoeficientes.addToEntry(0, 1, 2);
-			letraAcoeficientes.addToEntry(0, 2, 4);
-			letraAcoeficientes.addToEntry(1, 0, 1);
-			letraAcoeficientes.addToEntry(1, 1, 1);
-			letraAcoeficientes.addToEntry(1, 2, 2);
-			letraAcoeficientes.addToEntry(2, 0, 4);
+			letraAcoeficientes.addToEntry(0, 0, 2);
+			letraAcoeficientes.addToEntry(0, 1, -1);
+			letraAcoeficientes.addToEntry(0, 2, 1);
+			letraAcoeficientes.addToEntry(1, 0, 3);
+			letraAcoeficientes.addToEntry(1, 1, 3);
+			letraAcoeficientes.addToEntry(1, 2, 9);
+			letraAcoeficientes.addToEntry(2, 0, 3);
 			letraAcoeficientes.addToEntry(2, 1, 3);
-			letraAcoeficientes.addToEntry(2, 2, 2);
+			letraAcoeficientes.addToEntry(2, 2, 5);
 			
-			RealMatrix letraAconstantes = new Array2DRowRealMatrix(3, 1);		
-			letraAconstantes.addToEntry(0, 0, 1);
-			letraAconstantes.addToEntry(1, 0, 2);
-			letraAconstantes.addToEntry(2, 0, 3);
+			resolverSistema(letraAcoeficientes, null);
 			
-			resolverSistema(letraAcoeficientes, letraAconstantes);
+			System.out.println("LETRA B");
+			System.out.println("SISTEMA:");			
+			RealMatrix letraBcoeficientes = new Array2DRowRealMatrix(3, 3);
+			letraBcoeficientes.addToEntry(0, 0, 1.012);
+			letraBcoeficientes.addToEntry(0, 1, -2.132);
+			letraBcoeficientes.addToEntry(0, 2, 3.104);
+			letraBcoeficientes.addToEntry(1, 0, -2.132);
+			letraBcoeficientes.addToEntry(1, 1, 4.096);
+			letraBcoeficientes.addToEntry(1, 2, -7.013);
+			letraBcoeficientes.addToEntry(2, 0, 3.104);
+			letraBcoeficientes.addToEntry(2, 1, -7.013);
+			letraBcoeficientes.addToEntry(2, 2, 0.014);
+			
+			resolverSistema(letraBcoeficientes, null);
+			
+			System.out.println("LETRA C");
+			System.out.println("SISTEMA:");			
+			RealMatrix letraCcoeficientes = new Array2DRowRealMatrix(4, 4);
+			letraCcoeficientes.addToEntry(0, 0, 2);
+			letraCcoeficientes.addToEntry(0, 1, 0);
+			letraCcoeficientes.addToEntry(0, 2, 0);
+			letraCcoeficientes.addToEntry(0, 3, 0);
+			letraCcoeficientes.addToEntry(1, 0, 1);
+			letraCcoeficientes.addToEntry(1, 1, 1.5);
+			letraCcoeficientes.addToEntry(1, 2, 0);
+			letraCcoeficientes.addToEntry(1, 3, 0);
+			letraCcoeficientes.addToEntry(2, 0, 0);
+			letraCcoeficientes.addToEntry(2, 1, -3);
+			letraCcoeficientes.addToEntry(2, 2, 0.5);
+			letraCcoeficientes.addToEntry(2, 3, 0);
+			letraCcoeficientes.addToEntry(3, 0, 2);
+			letraCcoeficientes.addToEntry(3, 1, -2);
+			letraCcoeficientes.addToEntry(3, 2, 1);
+			letraCcoeficientes.addToEntry(3, 3, 1);
+			
+			resolverSistema(letraCcoeficientes, null);
+			
+			System.out.println("LETRA D");
+			System.out.println("SISTEMA:");
+			RealMatrix letraDcoeficientes = new Array2DRowRealMatrix(4, 4);
+			letraDcoeficientes.addToEntry(0, 0, 2.1756);
+			letraDcoeficientes.addToEntry(0, 1, 4.0231);
+			letraDcoeficientes.addToEntry(0, 2, -2.1732);
+			letraDcoeficientes.addToEntry(0, 3, 5.1967);
+			letraDcoeficientes.addToEntry(1, 0, -4.0231);
+			letraDcoeficientes.addToEntry(1, 1, 6);
+			letraDcoeficientes.addToEntry(1, 2, 0);
+			letraDcoeficientes.addToEntry(1, 3, 1.1973);
+			letraDcoeficientes.addToEntry(2, 0, -1);
+			letraDcoeficientes.addToEntry(2, 1, -5.2107);
+			letraDcoeficientes.addToEntry(2, 2, 1.1111);
+			letraDcoeficientes.addToEntry(2, 3, 0);
+			letraDcoeficientes.addToEntry(3, 0, 6.0235);
+			letraDcoeficientes.addToEntry(3, 1, 7);
+			letraDcoeficientes.addToEntry(3, 2, 0);
+			letraDcoeficientes.addToEntry(3, 3, -4.1561);
+			
+			resolverSistema(letraDcoeficientes, null);
 		}
 		
 		public static void resolverSistema(RealMatrix coeficientes, RealMatrix constantes) {
@@ -107,15 +236,15 @@ public class Metodos {
 				System.out.println();
 			}
 			
-			System.out.println("RESOLVENDO Ly = b");
-			System.out.println("y:");
-			RealMatrix y = new LUDecomposition(L).getSolver().getInverse().multiply(constantes);
-			Newton.printMatrix(y);
-			
-			System.out.println("RESOLVENDO Ux = y");
-			System.out.println("x:");
-			RealMatrix x = new LUDecomposition(U).getSolver().getInverse().multiply(y);
-			Newton.printMatrix(x);
+//			System.out.println("RESOLVENDO Ly = b");
+//			System.out.println("y:");
+//			RealMatrix y = new LUDecomposition(L).getSolver().getInverse().multiply(constantes);
+//			Newton.printMatrix(y);
+//			
+//			System.out.println("RESOLVENDO Ux = y");
+//			System.out.println("x:");
+//			RealMatrix x = new LUDecomposition(U).getSolver().getInverse().multiply(y);
+//			Newton.printMatrix(x);
 		}
 	}
 	
