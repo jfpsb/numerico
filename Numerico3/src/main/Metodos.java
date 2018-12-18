@@ -3,7 +3,6 @@ package main;
 import java.util.ArrayList;
 import java.util.List;
 
-import org.apache.commons.math3.fraction.Fraction;
 import org.apache.commons.math3.linear.Array2DRowRealMatrix;
 import org.apache.commons.math3.linear.LUDecomposition;
 import org.apache.commons.math3.linear.RealMatrix;
@@ -13,6 +12,8 @@ public class Metodos {
 	private static List<Ponto> pontos = new ArrayList<Ponto>();
 
 	public static void main(String[] args) {
+		
+		FatoracaoLU.chamarResolucao();
 		
 		EliminacaoDeGauss.chamarResolucao();
 		
@@ -28,6 +29,94 @@ public class Metodos {
 
 		//INTERPOLAÇÃO NEWTON
 		InterporlacaoNewton.interpolar(17);
+	}
+	
+	private static class FatoracaoLU {
+		public static void chamarResolucao() {
+			RealMatrix letraAcoeficientes = new Array2DRowRealMatrix(3, 3);
+			letraAcoeficientes.addToEntry(0, 0, 3);
+			letraAcoeficientes.addToEntry(0, 1, 2);
+			letraAcoeficientes.addToEntry(0, 2, 4);
+			letraAcoeficientes.addToEntry(1, 0, 1);
+			letraAcoeficientes.addToEntry(1, 1, 1);
+			letraAcoeficientes.addToEntry(1, 2, 2);
+			letraAcoeficientes.addToEntry(2, 0, 4);
+			letraAcoeficientes.addToEntry(2, 1, 3);
+			letraAcoeficientes.addToEntry(2, 2, 2);
+			
+			RealMatrix letraAconstantes = new Array2DRowRealMatrix(3, 1);		
+			letraAconstantes.addToEntry(0, 0, 1);
+			letraAconstantes.addToEntry(1, 0, 2);
+			letraAconstantes.addToEntry(2, 0, 3);
+			
+			resolverSistema(letraAcoeficientes, letraAconstantes);
+		}
+		
+		public static void resolverSistema(RealMatrix coeficientes, RealMatrix constantes) {
+			double pivo = 0;
+			double multiplicador = 0;
+			for(int i = 0; i < coeficientes.getRowDimension() - 1; i++) {
+				pivo = coeficientes.getEntry(i, i);
+				
+				for(int j = i + 1; j < coeficientes.getRowDimension(); j++) {
+					multiplicador = coeficientes.getEntry(j, i)/pivo;
+					
+					for(int w = i; w < coeficientes.getColumnDimension(); w++) {
+						double resultCoeficientes = coeficientes.getEntry(j, w) - (multiplicador * coeficientes.getEntry(i, w));
+						coeficientes.setEntry(j, w, resultCoeficientes);
+					}
+					
+					coeficientes.setEntry(j, i, multiplicador);
+				}
+			}
+			
+			RealMatrix L = new Array2DRowRealMatrix(3,3);
+			RealMatrix U = new Array2DRowRealMatrix(3,3);
+			
+			for(int i = 0; i < L.getRowDimension(); i++) {
+				L.setEntry(i, i, 1);
+				
+				for(int j = 0; j < L.getColumnDimension(); j++) {
+					if(i > j) {
+						L.setEntry(i, j, coeficientes.getEntry(i, j));
+					}
+				}
+			}
+			
+			for(int i = 0; i < U.getRowDimension(); i++) {				
+				for(int j = 0; j < U.getColumnDimension(); j++) {
+					if(i <= j) {
+						U.setEntry(i, j, coeficientes.getEntry(i, j));
+					}
+				}
+			}
+			
+			System.out.println("\nMATRIZ L:");
+			for(int i = 0; i < L.getRowDimension(); i++) {
+				for (int j = 0; j < L.getColumnDimension(); j++) {
+					System.out.printf("%.6f  ", L.getEntry(i, j));
+				}
+				System.out.println();
+			}
+			
+			System.out.println("\nMATRIZ U:");
+			for(int i = 0; i < U.getRowDimension(); i++) {
+				for (int j = 0; j < U.getColumnDimension(); j++) {
+					System.out.printf("%.6f  ", U.getEntry(i, j));
+				}
+				System.out.println();
+			}
+			
+			System.out.println("RESOLVENDO Ly = b");
+			System.out.println("y:");
+			RealMatrix y = new LUDecomposition(L).getSolver().getInverse().multiply(constantes);
+			Newton.printMatrix(y);
+			
+			System.out.println("RESOLVENDO Ux = y");
+			System.out.println("x:");
+			RealMatrix x = new LUDecomposition(U).getSolver().getInverse().multiply(y);
+			Newton.printMatrix(x);
+		}
 	}
 	
 	private static class EliminacaoDeGauss {
@@ -240,6 +329,31 @@ public class Metodos {
 			
 			System.out.println();
 		}
+		
+		public static void resolveTriagularInferior(RealMatrix coeficientes, RealMatrix constantes) {
+			double soma = 0;
+			double variavel = 0;
+			RealMatrix variaveis = new Array2DRowRealMatrix(coeficientes.getRowDimension(), 1);
+			
+			for(int i = 0; i < coeficientes.getRowDimension(); i++) {
+				soma = 0;
+				
+				for(int j = 0; j < i; j++) {
+					soma += coeficientes.getEntry(i, j) * constantes.getEntry(j, 0);
+				}
+				
+				variavel = (constantes.getEntry(i, 0) - soma)/(coeficientes.getEntry(i, i));
+				variaveis.setEntry(i, 0, variavel);
+			}
+			
+			System.out.println("\nSOLUCÃO:");
+			
+			for(int i = 0; i < variaveis.getRowDimension(); i++) {
+				System.out.printf("x%d = %.6f\n", i, variaveis.getEntry(i, 0));
+			}
+			
+			System.out.println();
+		}
 	}
 
 	private static class Newton {
@@ -314,7 +428,7 @@ public class Metodos {
 		public static void printMatrix(RealMatrix x) {
 			for (int i = 0; i < x.getRowDimension(); i++) {
 				for (int j = 0; j < x.getColumnDimension(); j++) {
-					System.out.print(x.getEntry(i, j));
+					System.out.printf("%.6f", x.getEntry(i, j));
 					System.out.print("  ");
 				}
 
